@@ -6,4 +6,5 @@ jinja2
 python-barcode
 pillow
 bcrypt
+passlib
 psycopg2-binary

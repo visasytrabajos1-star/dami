@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión - NexPos{% endblock %}
+
+{% block head %}
+<style>
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+    }
+
+    .navbar {
+        display: none;
+    }
+
+    /* Hide nav on login */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="glass-card login-card">
+        <img src="/static/images/logo.png" alt="NexPos Logo" height="60" style="margin-bottom: 24px;">
+        <h2 style="margin-bottom: 8px;">Bienvenido</h2>
+        <p style="color: var(--text-muted); margin-bottom: 32px;">Inicia sesión para continuar</p>
+
+        {% if error %}
+        <div
+            style="background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 24px; font-size: 0.9rem;">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="/login" method="post">
+            <div style="text-align: left;">
+                <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: 500;">Usuario</label>
+                <input type="text" name="username" required placeholder="admin" autofocus>
+            </div>
+
+            <div style="text-align: left; margin-top: 16px;">
+                <label
+                    style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: 500;">Contraseña</label>
+                <input type="password" name="password" required placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; margin-top: 32px; padding: 14px;">Ingresar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -15,7 +15,10 @@
     <div class="container">
         <!-- Navigation -->
         <nav class="navbar glass-card">
-            <a href="/" class="logo">StockApp Pro</a>
+            <a href="/" class="logo">
+                <img src="{{ settings.logo_url }}" height="30" style="vertical-align: middle; margin-right: 8px;">
+                {{ settings.company_name }}
+            </a>
             <div class="nav-links">
                 <a href="/" class="{% if active_page == 'home' %}active{% endif %}">Dashboard</a>
                 <a href="/products" class="{% if active_page == 'products' %}active{% endif %}">Productos</a>

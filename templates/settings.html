@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Configuración - NexPos{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+    <h2 style="margin-bottom: 24px;">Configuración del Sistema</h2>
+
+    <form action="/settings" method="post" enctype="multipart/form-data">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Nombre de la Empresa</label>
+        <input type="text" name="company_name" value="{{ settings.company_name }}" required>
+
+        <label style="display: block; margin-bottom: 8px; margin-top: 16px; font-weight: 500;">Logo Actual</label>
+        <div
+            style="background: rgba(255,255,255,0.5); padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 16px;">
+            <img src="{{ settings.logo_url }}" height="80" alt="Logo">
+        </div>
+
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Cambiar Logo (Opcional)</label>
+        <input type="file" name="logo_file" accept="image/*">
+
+        <button type="submit" class="btn" style="width: 100%; margin-top: 24px;">Guardar Cambios</button>
+    </form>
+</div>
+{% endblock %}

@@ -2,6 +2,24 @@ from typing import Optional, List
 from datetime import datetime
 from sqlmodel import Field, SQLModel, Relationship
 
+# --- Settings Model ---
+class Settings(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    company_name: str = Field(default="NexPos")
+    logo_url: str = Field(default="/static/images/logo.png")
+    currency_symbol: str = Field(default="$")
+
+# --- Client Model ---
+class Client(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    notes: Optional[str] = None
+    
+    sales: List["Sale"] = Relationship(back_populates="client")
+
 # --- User Model ---
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -36,6 +54,9 @@ class Sale(SQLModel, table=True):
     # Foreign Keys
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     user: Optional[User] = Relationship(back_populates="sales")
+    
+    client_id: Optional[int] = Field(default=None, foreign_key="client.id")
+    client: Optional["Client"] = Relationship(back_populates="sales")
     
     items: List["SaleItem"] = Relationship(back_populates="sale")
 
