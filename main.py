@@ -279,3 +279,18 @@ def migrate_legacy_data(session: Session = Depends(get_session), user: User = De
 
     session.commit()
     return results
+
+# --- Schema Migration Endpoint (Temporary) ---
+@app.get("/migrate-schema")
+def migrate_schema_v3(session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    from sqlalchemy import text
+    try:
+        # Add description column if not exists
+        session.exec(text("ALTER TABLE product ADD COLUMN description TEXT;"))
+        session.commit()
+        return {"status": "success", "message": "Added description column to Product table"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
