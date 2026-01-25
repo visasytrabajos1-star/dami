@@ -54,8 +54,8 @@ from starlette.middleware.sessions import SessionMiddleware
 app.add_middleware(SessionMiddleware, secret_key="super-secret-nexpos-key")
 
 @app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+def login_page(request: Request, settings: Settings = Depends(get_settings)):
+    return templates.TemplateResponse("login.html", {"request": request, "settings": settings})
 
 @app.post("/login")
 def login(request: Request, username: str = Form(...), password: str = Form(...), session: Session = Depends(get_session)):
