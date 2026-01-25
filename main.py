@@ -186,3 +186,89 @@ def create_sale_api(sale_data: dict, session: Session = Depends(get_session), us
         return sale
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# --- Migration Endpoint (Temporary) ---
+@app.get("/migrate-legacy")
+def migrate_legacy_data(session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    # Only admin can migrate
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    import re
+    import os
+    
+    # Path to dump file
+    sql_path = "legacy_data/dump.sql"
+    if not os.path.exists(sql_path):
+        return {"error": "Dump file not found"}
+        
+    with open(sql_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    results = {"clients": 0, "products": 0, "errors": []}
+    
+    def parse_mysql_insert(line):
+        match = re.search(r"VALUES\s+(.*);", line, re.IGNORECASE)
+        if not match: return []
+        values_str = match.group(1)
+        rows_raw = re.split(r"\),\s*\(", values_str)
+        parsed_rows = []
+        for row in rows_raw:
+            row = row.strip("()")
+            values = []
+            current_val = ""
+            in_quote = False
+            for char in row:
+                if char == "'" and not in_quote: in_quote = True
+                elif char == "'" and in_quote: in_quote = False
+                elif char == "," and not in_quote:
+                    values.append(current_val.strip().strip("'"))
+                    current_val = ""
+                    continue
+                current_val += char
+            values.append(current_val.strip().strip("'"))
+            parsed_rows.append(values)
+        return parsed_rows
+
+    # Migrate Clients
+    try:
+        client_inserts = re.findall(r"INSERT\s+INTO\s+`cliente`.*", content)
+        for line in client_inserts:
+            rows = parse_mysql_insert(line)
+            for row in rows:
+                if len(row) >= 2:
+                    name = row[1]
+                    if not session.exec(select(Client).where(Client.name == name)).first():
+                        session.add(Client(name=name))
+                        results["clients"] += 1
+    except Exception as e:
+        results["errors"].append(f"Client error: {str(e)}")
+
+    # Migrate Products
+    try:
+        product_inserts = re.findall(r"INSERT\s+INTO\s+`producto`.*", content)
+        for line in product_inserts:
+            rows = parse_mysql_insert(line)
+            for row in rows:
+                if len(row) >= 9:
+                    try:
+                        name = row[2]
+                        code = row[1]
+                        cost = float(row[3]) if row[3] else 0.0
+                        price = float(row[4]) if row[4] else 0.0
+                        stock = int(row[7]) if row[7] else 0
+                        min_stock = int(row[8]) if row[8] else 5
+                        
+                        if not session.exec(select(Product).where(Product.barcode == code)).first():
+                            session.add(Product(
+                                name=name, barcode=code, cost_price=cost,
+                                price=price, stock_quantity=stock, min_stock_level=min_stock
+                            ))
+                            results["products"] += 1
+                    except Exception as e:
+                        print(f"Skipping product: {e}")
+    except Exception as e:
+        results["errors"].append(f"Product error: {str(e)}")
+
+    session.commit()
+    return results
