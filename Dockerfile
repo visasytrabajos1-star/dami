@@ -11,8 +11,6 @@ WORKDIR /app
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-# Force bcrypt 3.2.2 compatibility fix (passlib issue)
-RUN pip install --no-cache-dir "bcrypt==3.2.2"
 
 # Copy Application Code
 COPY . .

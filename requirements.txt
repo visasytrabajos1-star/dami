@@ -6,7 +6,7 @@ python-multipart
 jinja2
 python-barcode
 pillow
-bcrypt==3.2.2
+argon2-cffi
 passlib
 psycopg2-binary
 itsdangerous

@@ -2,7 +2,7 @@ from passlib.context import CryptContext
 from sqlmodel import Session, select
 from database.models import User, Settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 class AuthService:
     @staticmethod
