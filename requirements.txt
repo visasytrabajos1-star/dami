@@ -5,7 +5,8 @@ python-multipart
 jinja2
 python-barcode
 pillow
-bcrypt
+bcrypt==4.0.1
 passlib
 psycopg2-binary
 itsdangerous
+supabase
