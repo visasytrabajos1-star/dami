@@ -128,8 +128,8 @@ def get_products_api(session: Session = Depends(get_session), user: User = Depen
     return session.exec(select(Product)).all()
 
 @app.post("/api/products")
-def create_product_api(name: str = Form(...), price: float = Form(...), stock: int = Form(...), session: Session = Depends(get_session), user: User = Depends(require_auth)):
-    product = Product(name=name, price=price, stock_quantity=stock, barcode="")
+def create_product_api(name: str = Form(...), price: float = Form(...), stock: int = Form(...), description: Optional[str] = Form(None), session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    product = Product(name=name, price=price, stock_quantity=stock, description=description, barcode="")
     session.add(product)
     session.commit()
     session.refresh(product)
@@ -139,12 +139,13 @@ def create_product_api(name: str = Form(...), price: float = Form(...), stock: i
     return product
 
 @app.put("/api/products/{id}")
-def update_product_api(id: int, name: str = Form(...), price: float = Form(...), stock: int = Form(...), session: Session = Depends(get_session), user: User = Depends(require_auth)):
+def update_product_api(id: int, name: str = Form(...), price: float = Form(...), stock: int = Form(...), description: Optional[str] = Form(None), session: Session = Depends(get_session), user: User = Depends(require_auth)):
     product = session.get(Product, id)
     if not product: raise HTTPException(404, "Not found")
     product.name = name
     product.price = price
     product.stock_quantity = stock
+    product.description = description
     session.add(product)
     session.commit()
     return product

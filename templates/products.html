@@ -44,7 +44,7 @@
                     </td>
                     <td>
                         <button
-                            onclick="editProduct('{{product.id}}', '{{product.name}}', '{{product.price}}', '{{product.stock_quantity}}')"
+                            onclick="editProduct('{{product.id}}', '{{product.name}}', '{{product.price}}', '{{product.stock_quantity}}', '{{product.description}}')"
                             class="btn"
                             style="padding: 4px 8px; font-size: 0.8rem; background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color);">Editar</button>
                         <button onclick="deleteProduct('{{product.id}}')" class="btn"
@@ -107,13 +107,14 @@
     }
     function closeModal() { document.getElementById('product-modal').style.display = 'none'; }
 
-    function editProduct(id, name, price, stock) {
+    function editProduct(id, name, price, stock, description) {
         document.getElementById('product-modal').style.display = 'flex';
         document.getElementById('modal-title').innerText = 'Editar Producto';
         document.getElementById('edit-id').value = id;
         document.getElementById('p-name').value = name;
         document.getElementById('p-price').value = price;
         document.getElementById('p-stock').value = stock;
+        document.getElementById('p-description').value = description || '';
     }
 
     async function deleteProduct(id) {
