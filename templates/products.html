@@ -6,7 +6,11 @@
 <div class="glass-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <h2>Inventario</h2>
-        <button onclick="openModal()" class="btn">+ Nuevo Producto</button>
+        <div>
+            <a href="/api/products/export" class="btn" style="background-color: #10b981; margin-right: 8px;">Exportar
+                Excel</a>
+            <button onclick="openModal()" class="btn">+ Nuevo Producto</button>
+        </div>
     </div>
 
     <div class="table-container">
