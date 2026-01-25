@@ -58,10 +58,10 @@ def login_page(request: Request, settings: Settings = Depends(get_settings)):
     return templates.TemplateResponse("login.html", {"request": request, "settings": settings})
 
 @app.post("/login")
-def login(request: Request, username: str = Form(...), password: str = Form(...), session: Session = Depends(get_session)):
+def login(request: Request, username: str = Form(...), password: str = Form(...), session: Session = Depends(get_session), settings: Settings = Depends(get_settings)):
     user = session.exec(select(User).where(User.username == username)).first()
     if not user or not AuthService.verify_password(password, user.password_hash):
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales inválidas"})
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales inválidas", "settings": settings})
     request.session["user_id"] = user.id
     return RedirectResponse("/", status_code=302)
 
