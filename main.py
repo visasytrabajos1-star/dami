@@ -99,10 +99,20 @@ def get_clients_page(request: Request, user: User = Depends(require_auth), setti
 
 @app.get("/sales", response_class=HTMLResponse)
 def get_sales_page(request: Request, user: User = Depends(require_auth), settings: Settings = Depends(get_settings), session: Session = Depends(get_session)):
-    # Fetch sales with items eagerly loaded if possible, otherwise lazy loading might trigger n+1 queries.
-    # For SQLModel with relations, ideally we'd use .options(selectinload(Sale.items)) but let's stick to simple first.
+    # Fetch sales
     sales = session.exec(select(Sale).order_by(Sale.timestamp.desc()).limit(50)).all()
-    return templates.TemplateResponse("sales.html", {"request": request, "active_page": "sales", "settings": settings, "user": user, "sales": sales})
+    
+    # Fetch low stock products (where stock <= min_stock_level)
+    low_stock_products = session.exec(select(Product).where(Product.stock_quantity <= Product.min_stock_level)).all()
+    
+    return templates.TemplateResponse("sales.html", {
+        "request": request, 
+        "active_page": "sales", 
+        "settings": settings, 
+        "user": user, 
+        "sales": sales,
+        "low_stock_products": low_stock_products
+    })
 
 @app.get("/settings", response_class=HTMLResponse)
 def get_settings_page(request: Request, user: User = Depends(require_auth), settings: Settings = Depends(get_settings)):

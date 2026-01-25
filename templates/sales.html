@@ -4,6 +4,38 @@
 
 {% block content %}
 <div class="glass-card">
+    <!-- Low Stock Alert Section -->
+    {% if low_stock_products %}
+    <div
+        style="background-color: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <h3 style="color: #ef4444; margin-bottom: 12px; display: flex; align-items: center;">
+            ⚠️ Productos a Reponer (Stock Bajo)
+        </h3>
+        <div class="table-container" style="max-height: 200px; overflow-y: auto;">
+            <table style="width: 100%;">
+                <thead style="background: rgba(255,255,255,0.5);">
+                    <tr>
+                        <th style="color: #7f1d1d;">Producto</th>
+                        <th style="color: #7f1d1d;">Stock Actual</th>
+                        <th style="color: #7f1d1d;">Mínimo</th>
+                        <th style="color: #7f1d1d;">Faltante</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in low_stock_products %}
+                    <tr>
+                        <td style="font-weight: 500;">{{ p.name }}</td>
+                        <td style="color: #ef4444; font-weight: bold;">{{ p.stock_quantity }}</td>
+                        <td>{{ p.min_stock_level }}</td>
+                        <td style="font-weight: bold;">{{ p.min_stock_level - p.stock_quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <h2 style="margin-bottom: 24px;">Reporte de Ventas</h2>
 
     <div class="table-container">
