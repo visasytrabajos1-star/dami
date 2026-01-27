@@ -73,10 +73,10 @@ function updateCart() {
         total += lineTotal;
         return `
         <tr>
-            <td>${item.name}</td>
-            <td>${item.qty}</td>
+            <td>${item.product_name}</td>
+            <td>${item.quantity}</td>
             <td>$${lineTotal.toFixed(2)}</td>
-            <td><button onclick="removeFromCart(${item.id})" style="background:none; border:none; color: red; cursor:pointer;">&times;</button></td>
+            <td><button onclick="removeFromCart(${item.product_id})" style="background:none; border:none; color: red; cursor:pointer;">&times;</button></td>
         </tr>
         `;
     }).join('');
@@ -85,7 +85,7 @@ function updateCart() {
 }
 
 function removeFromCart(id) {
-    cart = cart.filter(i => i.id !== id);
+    cart = cart.filter(i => i.product_id !== id);
     updateCart();
 }
 
