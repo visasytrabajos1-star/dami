@@ -258,20 +258,21 @@ def delete_product_api(id: int, session: Session = Depends(get_session), user: U
 
 # --- Clients ---
 @app.post("/api/clients")
-def create_client_api(name: str = Form(...), phone: Optional[str] = Form(None), email: Optional[str] = Form(None), address: Optional[str] = Form(None), session: Session = Depends(get_session), user: User = Depends(require_auth)):
-    client = Client(name=name, phone=phone, email=email, address=address)
+def create_client_api(name: str = Form(...), phone: Optional[str] = Form(None), email: Optional[str] = Form(None), address: Optional[str] = Form(None), credit_limit: Optional[float] = Form(None), session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    client = Client(name=name, phone=phone, email=email, address=address, credit_limit=credit_limit)
     session.add(client)
     session.commit()
     return client
 
 @app.put("/api/clients/{id}")
-def update_client_api(id: int, name: str = Form(...), phone: Optional[str] = Form(None), email: Optional[str] = Form(None), address: Optional[str] = Form(None), session: Session = Depends(get_session), user: User = Depends(require_auth)):
+def update_client_api(id: int, name: str = Form(...), phone: Optional[str] = Form(None), email: Optional[str] = Form(None), address: Optional[str] = Form(None), credit_limit: Optional[float] = Form(None), session: Session = Depends(get_session), user: User = Depends(require_auth)):
     client = session.get(Client, id)
     if not client: raise HTTPException(404, "Not found")
     client.name = name
     client.phone = phone
     client.email = email
     client.address = address
+    client.credit_limit = credit_limit
     session.add(client)
     session.commit()
     return client
