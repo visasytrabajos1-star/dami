@@ -57,7 +57,7 @@
                     </td>
                     <td>
                         <button
-                            onclick="editProduct('{{product.id}}', '{{product.name}}', '{{product.price}}', '{{product.stock_quantity}}', '{{product.description}}', '{{product.image_url}}')"
+                            onclick="editProduct('{{product.id}}', '{{product.name}}', '{{product.price}}', '{{product.stock_quantity}}', '{{product.description}}', '{{product.image_url}}', '{{product.barcode}}')"
                             class="btn"
                             style="padding: 4px 8px; font-size: 0.8rem; background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color);">Editar</button>
                         <button onclick="deleteProduct('{{product.id}}')" class="btn"
@@ -93,6 +93,14 @@
                     onchange="previewFile()">
             </div>
 
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Código de Barras (EAN13)</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <input type="text" id="p-barcode" name="barcode" placeholder="Escanea o escribe..."
+                    style="margin-bottom: 0;">
+                <button type="button" onclick="startScanner()" class="btn"
+                    style="padding: 0 16px; background: var(--text-main);">📷</button>
+            </div>
+
             <label style="display: block; margin-bottom: 8px; font-weight: 500;">Nombre del Producto</label>
             <input type="text" id="p-name" name="name" required placeholder="Ej. Coca Cola">
 
@@ -122,7 +130,69 @@
     </div>
 </div>
 
+<!-- Scanner Modal -->
+<div id="scanner-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; flex-direction: column;">
+    <div style="background: white; padding: 16px; border-radius: 12px; width: 90%; max-width: 500px;">
+        <h3 style="margin-bottom: 16px; text-align: center;">Escanear Código (EAN13)</h3>
+        <div id="reader" style="width: 100%;"></div>
+        <button onclick="closeScanner()" class="btn"
+            style="width: 100%; margin-top: 16px; background: #666;">Cerrar</button>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script>
+    let html5QrcodeScanner = null;
+
+    function startScanner() {
+        document.getElementById('scanner-modal').style.display = 'flex';
+
+        if (html5QrcodeScanner === null) {
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader",
+                {
+                    fps: 10,
+                    qrbox: 250,
+                    formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13]
+                },
+                /* verbose= */ false
+            );
+        }
+
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        // Handle the scanned code
+        console.log(`Code matched = ${decodedText}`, decodedResult);
+
+        // Suggestion: If we are editing/creating, put it in a field
+        // Since we don't have a visible barcode field yet, let's create one or put it in the name temporarily if user wants?
+        // Wait, user asked to scan barcode to ADD it. We need a barcode field in the form.
+        let barcodeInput = document.getElementById('p-barcode');
+        if (!barcodeInput) {
+            // Create hidden input if not exists or alert
+            alert("Código escaneado: " + decodedText);
+        } else {
+            barcodeInput.value = decodedText;
+        }
+
+        closeScanner();
+    }
+
+    function onScanFailure(error) {
+        // handle scan failure, usually better to ignore and keep scanning.
+        // console.warn(`Code scan error = ${error}`);
+    }
+
+    function closeScanner() {
+        document.getElementById('scanner-modal').style.display = 'none';
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear();
+        }
+    }
+
     function previewFile() {
         const preview = document.getElementById('preview-image');
         const file = document.getElementById('p-image').files[0];
@@ -138,10 +208,14 @@
         document.getElementById('edit-id').value = '';
         document.getElementById('modal-title').innerText = 'Nuevo Producto';
         document.getElementById('preview-image').src = "/static/images/logo.png";
+
+        // Reset barcode field (if we add it)
+        const barcodeField = document.getElementById('p-barcode');
+        if (barcodeField) barcodeField.value = '';
     }
     function closeModal() { document.getElementById('product-modal').style.display = 'none'; }
 
-    function editProduct(id, name, price, stock, description, imageUrl) {
+    function editProduct(id, name, price, stock, description, imageUrl, barcode) {
         document.getElementById('product-modal').style.display = 'flex';
         document.getElementById('modal-title').innerText = 'Editar Producto';
         document.getElementById('edit-id').value = id;
@@ -150,6 +224,9 @@
         document.getElementById('p-stock').value = stock;
         document.getElementById('p-description').value = description || '';
         document.getElementById('preview-image').src = imageUrl || "/static/images/logo.png";
+
+        const barcodeField = document.getElementById('p-barcode');
+        if (barcodeField) barcodeField.value = barcode || '';
     }
 
     async function deleteProduct(id) {
