@@ -9,7 +9,7 @@ import shutil
 import os
 
 from database.session import create_db_and_tables, get_session
-from database.models import Product, Sale, User, Settings, Client
+from database.models import Product, Sale, User, Settings, Client, Payment
 from services.stock_service import StockService
 from services.auth_service import AuthService
 
