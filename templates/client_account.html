@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Cuenta Corriente - {{ client.name }}{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 32px;">
+        <div>
+            <a href="/clients" class="btn"
+                style="background: transparent; color: #666; border: 1px solid #ccc; font-size: 0.9rem; padding: 6px 12px; margin-bottom: 16px; display: inline-block;">&larr;
+                Volver a Clientes</a>
+            <h2 style="margin: 0; font-size: 1.5rem;">{{ client.name }}</h2>
+            <div style="color: var(--text-muted);">{{ client.phone or '' }}</div>
+        </div>
+
+        <div
+            style="text-align: right; background: rgba(79, 70, 229, 0.05); padding: 16px; border-radius: 12px; border: 1px solid var(--primary-color);">
+            <div style="text-transform: uppercase; font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Saldo
+                Actual</div>
+            <div
+                style="font-size: 2.5rem; font-weight: 800; color: {% if balance > 0 %}#ef4444{% else %}#10b981{% endif %};">
+                ${{ balance }}
+            </div>
+            <button onclick="openPaymentModal()" class="btn" style="width: 100%; margin-top: 12px;">Registrar
+                Abono</button>
+        </div>
+    </div>
+
+    <h3>Movimientos</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Descripción</th>
+                    <th style="text-align: right;">Debe (Venta)</th>
+                    <th style="text-align: right;">Haber (Pago)</th>
+                    <!-- Running balance per row is tricky in simple jinja, skipping for now -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- We will mix sales and payments in backend and pass as single list 'movements' -->
+                {% for mov in movements %}
+                <tr>
+                    <td>{{ mov.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ mov.description }}</td>
+
+                    <td style="text-align: right; color: #ef4444; font-weight: 500;">
+                        {% if mov.type == 'sale' %} ${{ mov.amount }} {% endif %}
+                    </td>
+                    <td style="text-align: right; color: #10b981; font-weight: 500;">
+                        {% if mov.type == 'payment' %} ${{ mov.amount }} {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 24px;">Sin movimientos registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Pago -->
+<div id="payment-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 100; justify-content: center; align-items: center;">
+    <div class="glass-card" style="width: 100%; max-width: 400px; background: white;">
+        <h3 style="margin-bottom: 24px;">Registrar Abono</h3>
+        <form action="/api/clients/{{ client.id }}/pay" method="post">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Monto ($)</label>
+            <input type="number" step="0.01" name="amount" required autofocus placeholder="0.00"
+                style="font-size: 1.5rem; padding: 12px;">
+
+            <label style="display: block; margin-bottom: 8px; margin-top: 16px; font-weight: 500;">Nota
+                (Opcional)</label>
+            <input type="text" name="note" placeholder="Ej. Abono parcial">
+
+            <div style="margin-top: 24px; text-align: right;">
+                <button type="button" onclick="closePaymentModal()" class="btn"
+                    style="background: transparent; color: #666; margin-right: 8px; border: 1px solid #ccc;">Cancelar</button>
+                <button type="submit" class="btn">Registrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openPaymentModal() { document.getElementById('payment-modal').style.display = 'flex'; }
+    function closePaymentModal() { document.getElementById('payment-modal').style.display = 'none'; }
+</script>
+{% endblock %}

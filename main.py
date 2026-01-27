@@ -97,6 +97,62 @@ def get_clients_page(request: Request, user: User = Depends(require_auth), setti
     clients = session.exec(select(Client)).all()
     return templates.TemplateResponse("clients.html", {"request": request, "active_page": "clients", "settings": settings, "user": user, "clients": clients})
 
+@app.get("/clients/{id}/account", response_class=HTMLResponse)
+def get_client_account(id: int, request: Request, user: User = Depends(require_auth), settings: Settings = Depends(get_settings), session: Session = Depends(get_session)):
+    client = session.get(Client, id)
+    if not client: raise HTTPException(404, "Client not found")
+    
+    # 1. Get Sales
+    sales = session.exec(select(Sale).where(Sale.client_id == id)).all()
+    
+    # 2. Get Payments
+    payments_list = session.exec(select(Payment).where(Payment.client_id == id)).all()
+    
+    # 3. Calculate Balance & Mix Movements
+    total_debt = sum(s.total_amount for s in sales)
+    total_paid = sum(p.amount for p in payments_list)
+    balance = float(total_debt - total_paid)
+    
+    movements = []
+    for s in sales:
+        movements.append({
+            "date": s.timestamp,
+            "description": f"Venta #{s.id}",
+            "amount": s.total_amount,
+            "type": "sale"
+        })
+    for p in payments_list:
+        movements.append({
+            "date": p.date,
+            "description": f"Abono: {p.note or ''}",
+            "amount": p.amount,
+            "type": "payment"
+        })
+        
+    # Sort by date descending
+    movements.sort(key=lambda x: x["date"], reverse=True)
+    
+    return templates.TemplateResponse("client_account.html", {
+        "request": request, 
+        "active_page": "clients", 
+        "settings": settings, 
+        "user": user, 
+        "client": client,
+        "balance": round(balance, 2),
+        "movements": movements
+    })
+
+@app.post("/api/clients/{id}/pay")
+def register_payment(id: int, amount: float = Form(...), note: Optional[str] = Form(None), session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    client = session.get(Client, id)
+    if not client: raise HTTPException(404, "Client not found")
+    
+    payment = Payment(client_id=id, amount=amount, note=note)
+    session.add(payment)
+    session.commit()
+    
+    return RedirectResponse(f"/clients/{id}/account", status_code=303)
+
 @app.get("/sales", response_class=HTMLResponse)
 def get_sales_page(request: Request, user: User = Depends(require_auth), settings: Settings = Depends(get_settings), session: Session = Depends(get_session)):
     # Fetch sales
