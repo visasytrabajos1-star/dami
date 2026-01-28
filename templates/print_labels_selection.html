@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Imprimir Etiquetas - NexPos{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2>Impresor de Etiquetas</h2>
+        <div>
+            <button type="submit" form="printForm" class="btn">
+                🖨️ Generar Vista de Impresión
+            </button>
+        </div>
+    </div>
+
+    <form id="printForm" action="/products/labels/print" method="post" target="_blank">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+                        <th>Producto</th>
+                        <th>Código</th>
+                        <th>Precio</th>
+                        <th style="width: 100px;">Cantidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="selected_products" value="{{ product.id }}"
+                                class="product-check">
+                        </td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.barcode }}</td>
+                        <td>${{ product.price }}</td>
+                        <td>
+                            <input type="number" name="qty_{{ product.id }}" value="1" min="1" class="qty-input"
+                                style="width: 80px; margin-bottom: 0;">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleAll(source) {
+        checkboxes = document.getElementsByClassName('product-check');
+        for (var i = 0, n = checkboxes.length; i < n; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+    }
+</script>
+{% endblock %}

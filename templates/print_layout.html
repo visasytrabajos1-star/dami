@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Imprimir Etiquetas</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .label-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .label {
+            border: 1px dashed #ccc;
+            padding: 10px;
+            text-align: center;
+            page-break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 120px;
+            /* Alto fijo aproximado */
+        }
+
+        .label h3 {
+            font-size: 12px;
+            margin: 0 0 5px 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        .label img {
+            max-width: 100%;
+            height: 50px;
+            object-fit: contain;
+        }
+
+        .label .barcode-text {
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        .label .price {
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            .label {
+                border: 1px solid #ddd;
+                /* Borde más sutil al imprimir o ninguno */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="no-print" style="margin-bottom: 20px; text-align: center;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">🖨️ Imprimir
+            ahora</button>
+        <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Cerrar</button>
+    </div>
+
+    <div class="label-grid">
+        {% for item in labels %}
+        <div class="label">
+            <h3>{{ item.name }}</h3>
+            <!-- Assuming we serve barcodes from /static/barcodes/ -->
+            <!-- If we generate on the fly, we might reference a route, but linking to static file is easier if pre-generated -->
+            <img src="/static/barcodes/{{ item.barcode_file }}" alt="{{ item.barcode }}">
+            <div class="barcode-text">{{ item.barcode }}</div>
+            <div class="price">${{ item.price }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+
+</html>

@@ -263,6 +263,82 @@ def delete_product_api(id: int, session: Session = Depends(get_session), user: U
     session.commit()
     return {"ok": True}
 
+# --- Products: Label Printing ---
+@app.get("/products/labels", response_class=HTMLResponse)
+def get_labels_page(request: Request, user: User = Depends(require_auth), settings: Settings = Depends(get_settings), session: Session = Depends(get_session)):
+    products = session.exec(select(Product)).all()
+    return templates.TemplateResponse("print_labels_selection.html", {"request": request, "active_page": "products", "settings": settings, "user": user, "products": products})
+
+@app.post("/products/labels/print", response_class=HTMLResponse)
+async def print_labels(request: Request, session: Session = Depends(get_session)):
+    form = await request.form()
+    selected_ids = form.getlist("selected_products")
+    
+    labels_to_print = []
+    
+    for pid_str in selected_ids:
+        pid = int(pid_str)
+        product = session.get(Product, pid)
+        if product:
+            qty = int(form.get(f"qty_{pid}", 1))
+            
+            # Ensure barcode image exists
+            if not product.barcode:
+                 # If no barcode string, generate one (fallback)
+                 product.barcode = stock_service.generate_barcode(product.id)
+                 session.add(product)
+                 session.commit()
+                 session.refresh(product)
+            
+            # Check if file exists, if not recreate
+            # Note: StockService.generate_barcode returns filename and creates file.
+            # But here we might have a barcode string but missing file if it was manual entry.
+            # For simplicity, let's regenerare image if we suspect it's missing or just always ensure.
+            # We want the image filename. 
+            # Re-using generate_barcode logic to ensure file existence for the string.
+            # Warning: generate_barcode usually creates a new code based on ID. 
+            # If we have a custom barcode (e.g. from Coke can), we can't 'generate' an image simply with that method 
+            # unless we adapt it to print THAT code.
+            # Let's assume for now we trust the stored barcode string and try to generate an image for it.
+            
+            # We need a helper to generate image from arbitrary string if it's not the internal ID format.
+            # StockService.generate_barcode uses ID. Let's make a quick local fix or rely on standard path.
+            
+            # Quick hack: Generate image for the CURRENT barcode string
+            import barcode
+            from barcode.writer import ImageWriter
+            
+            # Sanitize barcode for filename
+            safe_filename = "".join([c for c in product.barcode if c.isalnum()])
+            # If empty fallback to id
+            if not safe_filename: safe_filename = f"prod_{product.id}"
+            
+            file_path = f"static/barcodes/{safe_filename}"
+            # Format: try EAN13 if 12/13 digits, else Code128
+            b_class = barcode.get_barcode_class('ean13') if len(product.barcode) in [12, 13] and product.barcode.isdigit() else barcode.get_barcode_class('code128')
+            
+            # Create image
+            try:
+                my_code = b_class(product.barcode, writer=ImageWriter())
+                my_code.save(file_path) # saves as file_path.png
+                img_filename = f"{safe_filename}.png"
+            except Exception as e:
+                # Fallback implementation if validation fails (e.g. invalid checksum for EAN)
+                # Force Code128
+                my_code = barcode.get('code128', product.barcode, writer=ImageWriter())
+                my_code.save(file_path)
+                img_filename = f"{safe_filename}.png"
+
+            for _ in range(qty):
+                labels_to_print.append({
+                    "name": product.name,
+                    "price": product.price,
+                    "barcode": product.barcode,
+                    "barcode_file": img_filename
+                })
+    
+    return templates.TemplateResponse("print_layout.html", {"request": request, "labels": labels_to_print})
+
 # --- Clients ---
 @app.get("/api/clients")
 def get_clients_api(session: Session = Depends(get_session), user: User = Depends(require_auth)):
