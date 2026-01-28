@@ -8,6 +8,14 @@ class Settings(SQLModel, table=True):
     company_name: str = Field(default="NexPos")
     logo_url: str = Field(default="/static/images/logo.png")
     currency_symbol: str = Field(default="$")
+    printer_name: Optional[str] = Field(default=None) # Printer name for backend printing
+
+# --- Tax Model ---
+class Tax(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    rate: float # 0.21 for 21%
+    is_active: bool = Field(default=True)
 
 # --- Client Model ---
 class Client(SQLModel, table=True):
@@ -45,6 +53,7 @@ class Product(SQLModel, table=True):
     min_stock_level: int = Field(default=5) # Alert level
     category: Optional[str] = None
     image_url: Optional[str] = None
+    curve_quantity: int = Field(default=1) # Quantity in the curve/pack
 
 # --- Sale Models (Header & Detail) ---
 class Sale(SQLModel, table=True):

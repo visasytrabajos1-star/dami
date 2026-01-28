@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}StockApp Professional{% endblock %}</title>
     <!-- Styles -->
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
     {% block head %}{% endblock %}
 </head>
 
@@ -17,7 +17,7 @@
         <nav class="navbar glass-card">
             <a href="/" class="logo">
                 <img src="{{ settings.logo_url }}" height="30" style="vertical-align: middle; margin-right: 8px;">
-                {{ settings.company_name }}
+                {{ settings.company_name }} <span style="font-size: 0.8em; opacity: 0.7;">(v2.1)</span>
             </a>
             <div class="nav-links">
                 <a href="/" class="{% if active_page == 'home' %}active{% endif %}">Dashboard</a>
@@ -25,6 +25,9 @@
                 <a href="/clients" class="{% if active_page == 'clients' %}active{% endif %}">Clientes</a>
                 <a href="/pos" class="{% if active_page == 'pos' %}active{% endif %}">Punto de Venta</a>
                 <a href="/sales" class="{% if active_page == 'sales' %}active{% endif %}">Reportes</a>
+                {% if user and user.role == "admin" %}
+                <a href="/admin" class="{% if active_page == 'admin' %}active{% endif %}">Admin</a>
+                {% endif %}
             </div>
         </nav>
 

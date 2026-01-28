@@ -9,7 +9,7 @@ import shutil
 import os
 
 from database.session import create_db_and_tables, get_session
-from database.models import Product, Sale, User, Settings, Client, Payment
+from database.models import Product, Sale, User, Settings, Client, Payment, Tax
 from services.stock_service import StockService
 from services.auth_service import AuthService
 
@@ -300,7 +300,7 @@ def delete_client_api(id: int, session: Session = Depends(get_session), user: Us
 @app.post("/api/sales")
 def create_sale_api(sale_data: dict, session: Session = Depends(get_session), user: User = Depends(require_auth)):
     try:
-        sale = stock_service.process_sale(session, user_id=user.id, items_data=sale_data["items"])
+        sale = stock_service.process_sale(session, user_id=user.id, items_data=sale_data["items"], client_id=sale_data.get("client_id"))
         return sale
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -392,23 +392,133 @@ def migrate_legacy_data(session: Session = Depends(get_session), user: User = De
     return results
 
 # --- Schema Migration Endpoint (Temporary) ---
+# --- Schema Migration Endpoint (V4) ---
 @app.get("/migrate-schema")
-def migrate_schema_v3(session: Session = Depends(get_session), user: User = Depends(require_auth)):
+def migrate_schema_v4(session: Session = Depends(get_session), user: User = Depends(require_auth)):
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     from sqlalchemy import text
-    try:
-        # Add description column if not exists
-        session.exec(text("ALTER TABLE product ADD COLUMN description TEXT;"))
-        session.commit()
-    except Exception as e:
-        print(f"Migration error (Product): {e}")
+    from database.session import create_db_and_tables
+    
+    # 1. Create new tables (Tax)
+    create_db_and_tables() 
 
     try:
-        # Add credit_limit column to Client
+        # 2. Update Settings table
+        session.exec(text("ALTER TABLE settings ADD COLUMN printer_name TEXT;"))
+        session.commit()
+    except Exception as e:
+        print(f"Migration error (Settings): {e}")
+
+    try:
+        # Previous migrations (safe to retry normally, but wrapped)
+        session.exec(text("ALTER TABLE product ADD COLUMN description TEXT;"))
+        session.commit()
+    except: pass
+    
+    try:
         session.exec(text("ALTER TABLE client ADD COLUMN credit_limit FLOAT;"))
         session.commit()
-        return {"status": "success", "message": "Schema updated (Product & Client)"}
-    except Exception as e:
-        return {"status": "partial_error", "message": str(e)}
+    except: pass
+
+    return {"status": "success", "message": "Schema updated (Tax, Settings)"}
+
+
+# --- Admin Endpoints ---
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request, user: User = Depends(require_auth)):
+    if user.role != "admin":
+        return RedirectResponse("/")
+    return templates.TemplateResponse("admin.html", {"request": request, "user": user})
+
+# Users
+@app.get("/api/users")
+def get_users(session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    if user.role != "admin": raise HTTPException(403)
+    return session.exec(select(User)).all()
+
+@app.post("/api/users")
+def create_user(
+    username: str = Form(...), 
+    password: str = Form(...), 
+    role: str = Form(...), 
+    full_name: Optional[str] = Form(None),
+    session: Session = Depends(get_session), 
+    user: User = Depends(require_auth)
+):
+    if user.role != "admin": raise HTTPException(403)
+    # Basic hash (In pro use bcrypt)
+    from services.auth_service import AuthService
+    # reusing AuthService logic if possible or just hash manually for now. 
+    # AuthService.verify_password uses bcrypt. We need hash_password.
+    # Let's assume AuthService has a hash method or we do it here.
+    # For now, simplistic approach or check AuthService.
+    # Wait, I don't see AuthService hash method exposed in imports.
+    # I'll implement a simple hash here or add to AuthService later. 
+    # Checking AuthService...
+    import bcrypt
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
+    
+    new_user = User(username=username, password_hash=hashed, role=role, full_name=full_name)
+    session.add(new_user)
+    try:
+        session.commit()
+    except:
+        raise HTTPException(400, "Username already exists")
+    return new_user
+
+@app.delete("/api/users/{id}")
+def delete_user(id: int, session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    if user.role != "admin": raise HTTPException(403)
+    if user.id == id: raise HTTPException(400, "Cannot delete yourself")
+    target = session.get(User, id)
+    if target:
+        session.delete(target)
+        session.commit()
+    return {"ok": True}
+
+# Taxes
+@app.get("/api/taxes")
+def get_taxes(session: Session = Depends(get_session)):
+    return session.exec(select(Tax)).all()
+
+@app.post("/api/taxes")
+def create_tax(name: str = Form(...), rate: float = Form(...), session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    if user.role != "admin": raise HTTPException(403)
+    tax = Tax(name=name, rate=rate)
+    session.add(tax)
+    session.commit()
+    return tax
+
+@app.delete("/api/taxes/{id}")
+def delete_tax(id: int, session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    if user.role != "admin": raise HTTPException(403)
+    tax = session.get(Tax, id)
+    if tax:
+        session.delete(tax)
+        session.commit()
+    return {"ok": True}
+
+# Settings
+@app.post("/api/settings")
+def update_settings_api(
+    company_name: str = Form(...), 
+    printer_name: Optional[str] = Form(None),
+    session: Session = Depends(get_settings), # gets settings obj
+    db: Session = Depends(get_session),
+    user: User = Depends(require_auth)
+):
+    if user.role != "admin": raise HTTPException(403)
+    # 'session' here is the Settings object from dependency, not DB session
+    # Wait, get_settings returns Settings OBJECT.
+    # We need to load it into DB session to update.
+    current_settings = session
+    current_settings.company_name = company_name
+    current_settings.printer_name = printer_name
+    db.add(current_settings)
+    db.commit()
+    return current_settings

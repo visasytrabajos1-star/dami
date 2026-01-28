@@ -24,12 +24,12 @@ class StockService:
         code.save(full_path)
         return f"{filename}.png"
 
-    def process_sale(self, session: Session, user_id: int, items_data: List[dict], payment_method: str = "cash") -> Sale:
+    def process_sale(self, session: Session, user_id: int, items_data: List[dict], payment_method: str = "cash", client_id: Optional[int] = None) -> Sale:
         """
         Creates a Sale record and updates product stock.
         items_data expected format: [{"product_id": 1, "quantity": 2}, ...]
         """
-        sale = Sale(user_id=user_id, payment_method=payment_method)
+        sale = Sale(user_id=user_id, payment_method=payment_method, client_id=client_id)
         total_sale = 0.0
         
         for item in items_data:

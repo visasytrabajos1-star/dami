@@ -8,12 +8,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     allProducts = await res.json();
 
     // Load Clients
-    const resClients = await fetch('/api/clients'); // Assuming endpoint exists or we use the page variable if rendered
-    // Actually we need to fetch clients or pass them. The template doesn't seem to pass them as JSON.
-    // Let's fetch them if endpoint exists, otherwise we'll skip for now or fix quick.
-    // Wait, create_client_api exists, get_clients_page exists. Need GET /api/clients? 
-    // In main.py, get_clients_page renders HTML. There is no GET /api/clients JSON endpoint?
-    // I need to add that endpoint too for the dropdown to work in POS!
+    try {
+        const resClients = await fetch('/api/clients');
+        if (resClients.ok) {
+            allClients = await resClients.json();
+            const clientSelect = document.getElementById('client-select');
+            if (clientSelect) {
+                // Keep default option
+                clientSelect.innerHTML = '<option value="">Cliente Casual</option>';
+                allClients.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    clientSelect.appendChild(opt);
+                });
+            }
+        }
+    } catch (err) {
+        console.error("Error loading clients:", err);
+    }
 
     // ... logic continues ...
     renderProducts(allProducts);
@@ -92,8 +105,12 @@ function removeFromCart(id) {
 async function checkout() {
     if (cart.length === 0) return alert("El carrito está vacío");
 
+    const clientSelect = document.getElementById('client-select');
+    const clientId = clientSelect ? clientSelect.value : null;
+
     const salesData = {
-        items: cart.map(i => ({ product_id: i.id, quantity: i.qty }))
+        items: cart.map(i => ({ product_id: i.product_id, quantity: i.quantity })),
+        client_id: clientId ? parseInt(clientId) : null
     };
 
     try {
