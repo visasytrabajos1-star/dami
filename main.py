@@ -836,6 +836,39 @@ def picking_exit(
         "print_url": f"/sales/{new_sale.id}/remito" # Using existing remito URL as "Invoice"
     }
 
+# --- Test Data Seeder (Temporary) ---
+@app.get("/api/test/seed_products")
+def seed_test_products(session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    if user.role != "admin": raise HTTPException(403)
+    
+    products_data = [
+        {"name": "Ojota lisa", "barcode": "210 NEGRO", "category": "Verano-Ojotas Dama", "price": 1750, "description": "Talle del 35/6 al 39/40", "cant_bulto": 12},
+        {"name": "Ojota faja lisa", "barcode": "7059 NEGRO", "category": "Verano-Ojotas Dama", "price": 4200, "description": "Talle del 35/6 al 39/40", "cant_bulto": 12},
+        {"name": "Gomones", "barcode": "128BB ROSA", "category": "Verano-Gomones-BB", "price": 3500, "description": "Talle del 19/20 al 23/24", "cant_bulto": 12},
+        {"name": "Faja", "barcode": "795 NEGRO", "category": "Verano-Fajas-Dama", "price": 5500, "description": "Talle del 35/6 al 39/40", "cant_bulto": 20},
+        {"name": "Sandalia velcro", "barcode": "417BLANCO", "category": "Verano-Fajas-Dama", "price": 13000, "description": "Talle del 35/6 al 39/40", "cant_bulto": 6},
+        {"name": "Entrededo", "barcode": "401/6", "category": "Verano-Fajas-Hombre", "price": 3000, "description": "Talle del 37/38 al 43/44", "cant_bulto": 25}
+    ]
+    
+    added = 0
+    for p in products_data:
+        existing = session.exec(select(Product).where(Product.barcode == p["barcode"])).first()
+        if not existing:
+            new_prod = Product(
+                name=p["name"],
+                barcode=p["barcode"],
+                category=p["category"],
+                price=p["price"],
+                description=p["description"],
+                cant_bulto=p["cant_bulto"],
+                stock_quantity=100 # Default stock for testing
+            )
+            session.add(new_prod)
+            added += 1
+            
+    session.commit()
+    return {"status": "success", "added": added, "message": f"Se agregaron {added} productos de prueba."}
+
 # Settings
 @app.post("/api/settings")
 def update_settings_api(
