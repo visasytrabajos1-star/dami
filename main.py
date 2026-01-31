@@ -576,7 +576,7 @@ async def import_products(file: UploadFile = File(...), session: Session = Depen
     updated = 0
     errors = []
     
-    # Expected columns: name, price, stock. Optional: barcode, category, cost
+    # Expected: Name, Price, Stock. Optional: Barcode, Category, Description, CantBulto, Numeracion
     for index, row in df.iterrows():
         try:
             name = str(row.get('Name', '')).strip()
@@ -584,6 +584,19 @@ async def import_products(file: UploadFile = File(...), session: Session = Depen
             
             barcode = str(row.get('Barcode', '')).strip()
             if pd.isna(barcode) or barcode == 'nan': barcode = None
+            
+            # Helper to get optional fields safely
+            def get_val(col, default=None):
+                val = row.get(col)
+                return str(val).strip() if not pd.isna(val) else default
+                
+            category = get_val('Category')
+            description = get_val('Description')
+            numeracion = get_val('Numeracion')
+            
+            cant_bulto = row.get('CantBulto')
+            if pd.isna(cant_bulto): cant_bulto = None
+            else: cant_bulto = int(cant_bulto)
             
             existing = None
             if barcode:
@@ -593,7 +606,11 @@ async def import_products(file: UploadFile = File(...), session: Session = Depen
                 # Update
                 existing.price = float(row.get('Price', existing.price))
                 existing.stock_quantity = int(row.get('Stock', existing.stock_quantity))
-                if 'Category' in row and not pd.isna(row['Category']): existing.category = str(row['Category'])
+                if category: existing.category = category
+                if description: existing.description = description
+                if numeracion: existing.numeracion = numeracion
+                if cant_bulto is not None: existing.cant_bulto = cant_bulto
+                
                 session.add(existing)
                 updated += 1
             else:
@@ -603,7 +620,10 @@ async def import_products(file: UploadFile = File(...), session: Session = Depen
                     price=float(row.get('Price', 0)),
                     stock_quantity=int(row.get('Stock', 0)),
                     barcode=barcode,
-                    category=str(row.get('Category', '')) if 'Category' in row and not pd.isna(row['Category']) else None
+                    category=category,
+                    description=description,
+                    numeracion=numeracion,
+                    cant_bulto=cant_bulto
                 )
                 session.add(prod)
                 added += 1
