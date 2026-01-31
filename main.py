@@ -3,8 +3,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select, func
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Optional, List
 import shutil
 import os
 
