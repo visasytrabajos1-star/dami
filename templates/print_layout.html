@@ -5,83 +5,108 @@
     <meta charset="UTF-8">
     <title>Imprimir Etiquetas</title>
     <style>
+        @page {
+            size: 50mm 25mm;
+            margin: 0;
+        }
+
         body {
             font-family: sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
         }
 
         .label-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            /* For screen viewing */
+            display: flex;
+            flex-wrap: wrap;
             gap: 10px;
+            padding: 10px;
         }
 
         .label {
+            width: 50mm;
+            height: 25mm;
+            box-sizing: border-box;
             border: 1px dashed #ccc;
-            padding: 10px;
-            text-align: center;
-            page-break-inside: avoid;
+            /* Dashed for screen preview */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 120px;
-            /* Alto fijo aproximado */
+            text-align: center;
+            overflow: hidden;
+            background: white;
+            page-break-after: always;
+            /* Force new page for each label */
         }
 
         .label h3 {
-            font-size: 12px;
-            margin: 0 0 5px 0;
+            font-size: 8pt;
+            margin: 0;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
             width: 100%;
+            padding: 0 2px;
         }
 
         .label img {
-            max-width: 100%;
-            height: 50px;
+            width: 80%;
+            height: 12mm;
             object-fit: contain;
         }
 
         .label .barcode-text {
-            font-size: 10px;
-            margin-top: 2px;
+            font-size: 7pt;
+            margin: -2px 0 0 0;
         }
 
         .label .price {
             font-weight: bold;
-            font-size: 14px;
-            margin-top: 5px;
+            font-size: 9pt;
+            margin: 0;
         }
 
         @media print {
+            body {
+                padding: 0;
+            }
+
             .no-print {
                 display: none;
             }
 
+            .label-grid {
+                display: block;
+                padding: 0;
+            }
+
             .label {
-                border: 1px solid #ddd;
-                /* Borde más sutil al imprimir o ninguno */
+                border: none;
+                /* Remove border for actual print */
+                margin: 0 auto;
+                page-break-after: always;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="no-print" style="margin-bottom: 20px; text-align: center;">
-        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">🖨️ Imprimir
-            ahora</button>
-        <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Cerrar</button>
+    <div class="no-print" style="margin-bottom: 20px; text-align: center; padding: 20px;">
+        <h2>Vista Previa (Formato Zebra 50x25mm)</h2>
+        <p>Asegúrate de configurar el tamaño de papel en las preferencias de impresión.</p>
+        <button onclick="window.print()"
+            style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #2c3e50; color: white; border: none; border-radius: 4px;">🖨️
+            Imprimir</button>
+        <button onclick="window.close()"
+            style="padding: 10px 20px; font-size: 16px; cursor: pointer; margin-left:10px;">Cerrar</button>
     </div>
 
     <div class="label-grid">
         {% for item in labels %}
         <div class="label">
             <h3>{{ item.name }}</h3>
-            <!-- Assuming we serve barcodes from /static/barcodes/ -->
-            <!-- If we generate on the fly, we might reference a route, but linking to static file is easier if pre-generated -->
             <img src="/static/barcodes/{{ item.barcode_file }}" alt="{{ item.barcode }}">
             <div class="barcode-text">{{ item.barcode }}</div>
             <div class="price">${{ item.price }}</div>

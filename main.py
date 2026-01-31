@@ -521,18 +521,11 @@ def create_user(
 ):
     if user.role != "admin": raise HTTPException(403)
     # Basic hash (In pro use bcrypt)
+    if user.role != "admin": raise HTTPException(403)
+    
+    # Use AuthService for consistent hashing (Argon2)
     from services.auth_service import AuthService
-    # reusing AuthService logic if possible or just hash manually for now. 
-    # AuthService.verify_password uses bcrypt. We need hash_password.
-    # Let's assume AuthService has a hash method or we do it here.
-    # For now, simplistic approach or check AuthService.
-    # Wait, I don't see AuthService hash method exposed in imports.
-    # I'll implement a simple hash here or add to AuthService later. 
-    # Checking AuthService...
-    import bcrypt
-    pwd_bytes = password.encode('utf-8')
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
+    hashed = AuthService.get_password_hash(password)
     
     new_user = User(username=username, password_hash=hashed, role=role, full_name=full_name)
     session.add(new_user)
