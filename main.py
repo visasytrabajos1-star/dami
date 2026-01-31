@@ -528,15 +528,153 @@ def migrate_schema_v5(session: Session = Depends(get_session), user: User = Depe
     return {"status": "success", "results": results}
 
 
-# --- Admin Endpoints ---
+# --- Settings & Admin (v2.4) ---
 
-@app.get("/admin", response_class=HTMLResponse)
-def admin_page(request: Request, user: User = Depends(require_auth)):
-    if user.role != "admin":
-        return RedirectResponse("/")
-    return templates.TemplateResponse("admin.html", {"request": request, "user": user})
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request, user: User = Depends(require_auth), settings: Settings = Depends(get_settings)):
+    if user.role != "admin": return RedirectResponse("/")
+    return templates.TemplateResponse("settings.html", {"request": request, "user": user, "settings": settings})
 
-# Users
+@app.get("/admin")
+def admin_redirect():
+    # Fix for 500 error on legacy /admin
+    return RedirectResponse("/settings")
+
+@app.post("/api/settings")
+def update_settings_api(
+    company_name: Optional[str] = Form(None),
+    printer_name: Optional[str] = Form(None),
+    session: Session = Depends(get_session),
+    user: User = Depends(require_auth)
+):
+    if user.role != "admin": raise HTTPException(403)
+    settings = session.exec(select(Settings)).first()
+    if not settings:
+        settings = Settings(company_name="My Company")
+        session.add(settings)
+    
+    if company_name: settings.company_name = company_name
+    if printer_name: settings.printer_name = printer_name
+    
+    session.add(settings)
+    session.commit()
+    return {"ok": True}
+
+# --- Import / Export (Excel) ---
+@app.post("/api/import/products")
+async def import_products(file: UploadFile = File(...), session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    if user.role != "admin": raise HTTPException(403)
+    
+    import pandas as pd
+    import io
+    
+    contents = await file.read()
+    df = pd.read_excel(io.BytesIO(contents))
+    
+    added = 0
+    updated = 0
+    errors = []
+    
+    # Expected columns: name, price, stock. Optional: barcode, category, cost
+    for index, row in df.iterrows():
+        try:
+            name = str(row.get('Name', '')).strip()
+            if not name or pd.isna(name): continue
+            
+            barcode = str(row.get('Barcode', '')).strip()
+            if pd.isna(barcode) or barcode == 'nan': barcode = None
+            
+            existing = None
+            if barcode:
+                existing = session.exec(select(Product).where(Product.barcode == barcode)).first()
+            
+            if existing:
+                # Update
+                existing.price = float(row.get('Price', existing.price))
+                existing.stock_quantity = int(row.get('Stock', existing.stock_quantity))
+                if 'Category' in row and not pd.isna(row['Category']): existing.category = str(row['Category'])
+                session.add(existing)
+                updated += 1
+            else:
+                # Create
+                prod = Product(
+                    name=name,
+                    price=float(row.get('Price', 0)),
+                    stock_quantity=int(row.get('Stock', 0)),
+                    barcode=barcode,
+                    category=str(row.get('Category', '')) if 'Category' in row and not pd.isna(row['Category']) else None
+                )
+                session.add(prod)
+                added += 1
+                
+        except Exception as e:
+            errors.append(f"Row {index}: {str(e)}")
+            
+    session.commit()
+    return {"added": added, "updated": updated, "errors": errors}
+
+@app.post("/api/import/clients")
+async def import_clients(file: UploadFile = File(...), session: Session = Depends(get_session), user: User = Depends(require_auth)):
+    if user.role != "admin": raise HTTPException(403)
+    
+    import pandas as pd
+    import io
+    
+    contents = await file.read()
+    df = pd.read_excel(io.BytesIO(contents))
+    
+    added = 0
+    errors = []
+    
+    for index, row in df.iterrows():
+        try:
+            name = str(row.get('Name', '')).strip()
+            if not name or pd.isna(name): continue
+            
+            # Check duplicate by name?
+            existing = session.exec(select(Client).where(Client.name == name)).first()
+            if existing: continue # Skip if exists
+            
+            client = Client(
+                name=name,
+                phone=str(row.get('Phone', '')) if not pd.isna(row.get('Phone')) else None,
+                email=str(row.get('Email', '')) if not pd.isna(row.get('Email')) else None,
+                address=str(row.get('Address', '')) if not pd.isna(row.get('Address')) else None
+            )
+            session.add(client)
+            added += 1
+        except Exception as e:
+            errors.append(f"Row {index}: {str(e)}")
+            
+    session.commit()
+    return {"added": added, "errors": errors}
+
+# --- Backup ---
+@app.get("/api/backup")
+def download_backup(user: User = Depends(require_auth), session: Session = Depends(get_session)):
+    if user.role != "admin": raise HTTPException(403)
+    
+    import json
+    from datetime import datetime
+    
+    # Simple JSON dump of main tables
+    data = {
+        "generated_at": datetime.now().isoformat(),
+        "products": [p.model_dump() for p in session.exec(select(Product)).all()],
+        "clients": [c.model_dump() for c in session.exec(select(Client)).all()],
+        "sales": [s.model_dump() for s in session.exec(select(Sale)).all()]
+    }
+    
+    json_str = json.dumps(data, indent=2, default=str)
+    
+    from fastapi.responses import Response
+    return Response(
+        content=json_str,
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename=backup_{datetime.now().strftime('%Y%m%d')}.json"}
+    )
+
+# --- Users (Refined) ---
 @app.get("/api/users")
 def get_users(session: Session = Depends(get_session), user: User = Depends(require_auth)):
     if user.role != "admin": raise HTTPException(403)
@@ -552,10 +690,8 @@ def create_user(
     user: User = Depends(require_auth)
 ):
     if user.role != "admin": raise HTTPException(403)
-    # Basic hash (In pro use bcrypt)
-    if user.role != "admin": raise HTTPException(403)
     
-    # Use AuthService for consistent hashing (Argon2)
+    # Use AuthService for consistent hashing
     from services.auth_service import AuthService
     hashed = AuthService.get_password_hash(password)
     

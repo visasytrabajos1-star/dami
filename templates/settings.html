@@ -3,23 +3,272 @@
 {% block title %}Configuración - NexPos{% endblock %}
 
 {% block content %}
-<div class="glass-card" style="max-width: 600px; margin: 0 auto;">
-    <h2 style="margin-bottom: 24px;">Configuración del Sistema</h2>
+<div class="glass-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2>Configuración</h2>
+        <span class="badge admin">v2.4</span>
+    </div>
 
-    <form action="/settings" method="post" enctype="multipart/form-data">
-        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Nombre de la Empresa</label>
-        <input type="text" name="company_name" value="{{ settings.company_name }}" required>
+    <!-- Tabs -->
+    <div style="display: flex; border-bottom: 2px solid rgba(0,0,0,0.1); margin-bottom: 24px;">
+        <button onclick="switchTab('general')" id="tab-general" class="tab-btn active"
+            style="padding: 12px 24px; font-weight: 500; border-bottom: 2px solid var(--primary-color); color: var(--primary-color); background: none; cursor: pointer;">
+            Sistema
+        </button>
+        <button onclick="switchTab('users')" id="tab-users" class="tab-btn"
+            style="padding: 12px 24px; font-weight: 500; border-bottom: 2px solid transparent; color: #666; background: none; cursor: pointer;">
+            Usuarios
+        </button>
+        <button onclick="switchTab('import')" id="tab-import" class="tab-btn"
+            style="padding: 12px 24px; font-weight: 500; border-bottom: 2px solid transparent; color: #666; background: none; cursor: pointer;">
+            Importación Masiva
+        </button>
+        <button onclick="switchTab('backup')" id="tab-backup" class="tab-btn"
+            style="padding: 12px 24px; font-weight: 500; border-bottom: 2px solid transparent; color: #666; background: none; cursor: pointer;">
+            Respaldo
+        </button>
+    </div>
 
-        <label style="display: block; margin-bottom: 8px; margin-top: 16px; font-weight: 500;">Logo Actual</label>
-        <div
-            style="background: rgba(255,255,255,0.5); padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 16px;">
-            <img src="{{ settings.logo_url }}" height="80" alt="Logo">
+    <!-- GENERAL SETTINGS -->
+    <div id="content-general" class="tab-content">
+        <h3 style="margin-bottom: 16px;">Configuración General</h3>
+        <form onsubmit="updateSettings(event)" style="max-width: 500px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Nombre de la Empresa</label>
+            <input type="text" id="s-company" name="company_name" required value="" class="form-input">
+
+            <label style="display: block; margin-bottom: 8px; margin-top: 16px; font-weight: 500;">Impresora
+                Predeterminada (Windows)</label>
+            <input type="text" id="s-printer" name="printer_name" placeholder="Ej. EPSON TM-T20II" class="form-input">
+
+            <button type="submit" class="btn" style="margin-top: 24px;">Guardar Cambios</button>
+        </form>
+    </div>
+
+    <!-- USERS -->
+    <div id="content-users" class="tab-content" style="display: none;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+            <h3>Gestión de Usuarios</h3>
+            <button onclick="openUserModal()" class="btn">+ Nuevo Usuario</button>
         </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre Completo</th>
+                        <th>Rol</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table">
+                    <!-- JS populated -->
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Cambiar Logo (Opcional)</label>
-        <input type="file" name="logo_file" accept="image/*">
+    <!-- IMPORT -->
+    <div id="content-import" class="tab-content" style="display: none;">
+        <h3 style="margin-bottom: 16px;">Importación Masiva (Excel)</h3>
 
-        <button type="submit" class="btn" style="width: 100%; margin-top: 24px;">Guardar Cambios</button>
-    </form>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <!-- Products Import -->
+            <div style="border: 2px dashed #cbd5e1; padding: 24px; border-radius: 12px; text-align: center;">
+                <h4>Productos</h4>
+                <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 16px;">
+                    Columnas requeridas: Name, Price, Stock<br>
+                    Opcionales: Barcode, Category, Cost
+                </p>
+                <form onsubmit="importProducts(event)">
+                    <input type="file" name="file" accept=".xlsx" required style="margin-bottom: 16px;">
+                    <button type="submit" class="btn" style="width: 100%;">Subir Productos</button>
+                </form>
+            </div>
+
+            <!-- Clients Import -->
+            <div style="border: 2px dashed #cbd5e1; padding: 24px; border-radius: 12px; text-align: center;">
+                <h4>Clientes</h4>
+                <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 16px;">
+                    Columnas requeridas: Name<br>
+                    Opcionales: Phone, Email, Address
+                </p>
+                <form onsubmit="importClients(event)">
+                    <input type="file" name="file" accept=".xlsx" required style="margin-bottom: 16px;">
+                    <button type="submit" class="btn" style="width: 100%;">Subir Clientes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- BACKUP -->
+    <div id="content-backup" class="tab-content" style="display: none;">
+        <h3 style="margin-bottom: 16px;">Respaldo de Base de Datos</h3>
+        <p style="color: #64748b; margin-bottom: 24px;">Descare una copia completa de su base de datos en formato JSON
+            para seguridad o migración.</p>
+
+        <a href="/api/backup" target="_blank" class="btn"
+            style="background-color: #0f172a; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            💾 Descargar Backup Completo
+        </a>
+    </div>
+
 </div>
+
+<!-- Add User Modal -->
+<div id="user-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center;">
+    <div class="glass-card" style="width: 100%; max-width: 400px; background: white;">
+        <h3 style="margin-bottom: 16px;">Nuevo Usuario</h3>
+        <form onsubmit="createUser(event)">
+            <label style="display: block; margin-bottom: 8px;">Username</label>
+            <input type="text" name="username" required class="form-input">
+            <label style="display: block; margin-bottom: 8px;">Password</label>
+            <input type="password" name="password" required class="form-input">
+            <label style="display: block; margin-bottom: 8px;">Nombre Completo</label>
+            <input type="text" name="full_name" class="form-input">
+            <label style="display: block; margin-bottom: 8px;">Rol</label>
+            <select name="role" required
+                style="width: 100%; padding: 10px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e7eb;">
+                <option value="cashier">Cajero (Limitado)</option>
+                <option value="admin">Administrador (Total)</option>
+            </select>
+            <div style="text-align: right;">
+                <button type="button" onclick="document.getElementById('user-modal').style.display='none'" class="btn"
+                    style="background: #999;">Cancelar</button>
+                <button type="submit" class="btn">Crear</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const currentUserId = {{ user.id }};
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(el => {
+            el.style.borderBottomColor = 'transparent';
+            el.style.color = '#666';
+            el.classList.remove('active');
+        });
+
+        document.getElementById('content-' + tab).style.display = 'block';
+        const btn = document.getElementById('tab-' + tab);
+        btn.style.borderBottomColor = 'var(--primary-color)';
+        btn.style.color = 'var(--primary-color)';
+        btn.classList.add('active');
+
+        if (tab === 'users') loadUsers();
+    }
+
+    // --- Users ---
+    async function loadUsers() {
+        const res = await fetch('/api/users');
+        const users = await res.json();
+        const tbody = document.getElementById('users-table');
+        tbody.innerHTML = users.map(u => `
+            <tr>
+                <td>${u.username}</td>
+                <td>${u.full_name || '-'}</td>
+                <td><span class="badge ${u.role === 'admin' ? 'admin' : ''}">${u.role}</span></td>
+                <td>
+                    ${u.role !== 'admin' || u.id !== currentUserId ? `
+                    <button onclick="deleteUser(${u.id})" style="color: red; border:none; background:none; cursor:pointer;">Eliminar</button>
+                    ` : ''}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function openUserModal() { document.getElementById('user-modal').style.display = 'flex'; }
+
+    async function createUser(e) {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const res = await fetch('/api/users', { method: 'POST', body: data });
+        if (res.ok) {
+            e.target.reset();
+            document.getElementById('user-modal').style.display = 'none';
+            loadUsers();
+        } else alert("Error creando usuario (¿Username duplicado?)");
+    }
+
+    async function deleteUser(id) {
+        if (!confirm("¿Eliminar usuario?")) return;
+        await fetch('/api/users/' + id, { method: 'DELETE' });
+        loadUsers();
+    }
+
+    // --- Import ---
+    async function importProducts(e) {
+        e.preventDefault();
+        if (!confirm("Esto IMPORTARÁ productos desde el Excel. ¿Continuar?")) return;
+
+        const data = new FormData(e.target);
+        const btn = e.target.querySelector('button');
+        const originalText = btn.innerText;
+        btn.disabled = true; btn.innerText = "Subiendo...";
+
+        try {
+            const res = await fetch('/api/import/products', { method: 'POST', body: data });
+            const result = await res.json();
+            alert(`Importación completada.\nAgregados: ${result.added}\nActualizados: ${result.updated}\nErrores: ${result.errors.length}`);
+        } catch (err) {
+            alert("Error en la importación");
+        } finally {
+            btn.disabled = false; btn.innerText = originalText;
+        }
+    }
+
+    async function importClients(e) {
+        e.preventDefault();
+        if (!confirm("Esto IMPORTARÁ clientes desde el Excel. ¿Continuar?")) return;
+
+        const data = new FormData(e.target);
+        const btn = e.target.querySelector('button');
+        const originalText = btn.innerText;
+        btn.disabled = true; btn.innerText = "Subiendo...";
+
+        try {
+            const res = await fetch('/api/import/clients', { method: 'POST', body: data });
+            const result = await res.json();
+            alert(`Importación completada.\nAgregados: ${result.added}\nErrores: ${result.errors.length}`);
+        } catch (err) {
+            alert("Error en la importación");
+        } finally {
+            btn.disabled = false; btn.innerText = originalText;
+        }
+    }
+
+    // --- Settings ---
+    async function updateSettings(e) {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const res = await fetch('/api/settings', { method: 'POST', body: data });
+        if (res.ok) alert("Configuración guardada");
+        else alert("Error al guardar");
+    }
+</script>
+
+<style>
+    .form-input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 0px;
+    }
+
+    .badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: #e5e7eb;
+        font-size: 0.8rem;
+    }
+
+    .badge.admin {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+</style>
 {% endblock %}
