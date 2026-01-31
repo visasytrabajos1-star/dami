@@ -1,0 +1,15 @@
+# Backend Gitignore
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+ENV/
+*.db
+*.sqlite3
+.DS_Store
+static/backups/
+legacy_data/

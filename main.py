@@ -12,6 +12,8 @@ from database.session import create_db_and_tables, get_session
 from database.models import Product, Sale, User, Settings, Client, Payment, Tax
 from services.stock_service import StockService
 from services.auth_service import AuthService
+import barcode
+from barcode.writer import ImageWriter
 
 # Setup
 stock_service = StockService(static_dir="static/barcodes")
@@ -291,22 +293,8 @@ async def print_labels(request: Request, session: Session = Depends(get_session)
                  session.refresh(product)
             
             # Check if file exists, if not recreate
-            # Note: StockService.generate_barcode returns filename and creates file.
-            # But here we might have a barcode string but missing file if it was manual entry.
-            # For simplicity, let's regenerare image if we suspect it's missing or just always ensure.
             # We want the image filename. 
             # Re-using generate_barcode logic to ensure file existence for the string.
-            # Warning: generate_barcode usually creates a new code based on ID. 
-            # If we have a custom barcode (e.g. from Coke can), we can't 'generate' an image simply with that method 
-            # unless we adapt it to print THAT code.
-            # Let's assume for now we trust the stored barcode string and try to generate an image for it.
-            
-            # We need a helper to generate image from arbitrary string if it's not the internal ID format.
-            # StockService.generate_barcode uses ID. Let's make a quick local fix or rely on standard path.
-            
-            # Quick hack: Generate image for the CURRENT barcode string
-            import barcode
-            from barcode.writer import ImageWriter
             
             # Sanitize barcode for filename
             safe_filename = "".join([c for c in product.barcode if c.isalnum()])
