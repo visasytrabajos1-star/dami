@@ -21,6 +21,9 @@
                 style="font-size: 2.5rem; font-weight: 800; color: {% if balance > 0 %}#ef4444{% else %}#10b981{% endif %};">
                 ${{ balance }}
             </div>
+            <button onclick="window.print()" class="btn"
+                style="width: 100%; margin-top: 12px; background-color: #2c3e50;">🖨️ Imprimir
+                Estado</button>
             <button onclick="openPaymentModal()" class="btn" style="width: 100%; margin-top: 12px;">Registrar
                 Abono</button>
         </div>
@@ -85,8 +88,44 @@
     </div>
 </div>
 
-<script>
-    function openPaymentModal() { document.getElementById('payment-modal').style.display = 'flex'; }
-    function closePaymentModal() { document.getElementById('payment-modal').style.display = 'none'; }
+function openPaymentModal() { document.getElementById('payment-modal').style.display = 'flex'; }
+function closePaymentModal() { document.getElementById('payment-modal').style.display = 'none'; }
 </script>
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        .glass-card,
+        .glass-card * {
+            visibility: visible;
+        }
+
+        .glass-card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            box-shadow: none;
+            border: none;
+            background: white !important;
+        }
+
+        /* Hide buttons (print, pay, back) */
+        .btn,
+        .btn-small,
+        a.btn {
+            display: none !important;
+        }
+
+        /* Show headers nicely */
+        .glass-card>div:first-child {
+            border-bottom: 2px solid #eee;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+    }
+</style>
 {% endblock %}

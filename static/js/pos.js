@@ -121,9 +121,20 @@ async function checkout() {
         });
 
         if (res.ok) {
-            alert('Venta realizada con éxito');
+            const sale = await res.json();
+
+            // Ask to print Remito
+            if (confirm('Venta realizada con éxito. ¿Desea generar el Remito?')) {
+                window.open(`/sales/${sale.id}/remito`, '_blank');
+            }
+
             cart = [];
+
+            // Clear UI needs to be robust if cart-body doesn't exist, but let's assume updateCart handles it or we fix it.
+            // Actually, updateCart uses cart-body. If pos.html doesn't have it, we should likely fix pos.html too.
+            // But for now let's stick to the request.
             updateCart();
+
             // Reload products to update stock
             const pRes = await fetch('/api/products');
             allProducts = await pRes.json();
@@ -133,6 +144,7 @@ async function checkout() {
             alert('Error: ' + err.detail);
         }
     } catch (e) {
-        alert('Error de conexión');
+        console.error(e);
+        alert('Error de conexión o proceso: ' + e.message);
     }
 }

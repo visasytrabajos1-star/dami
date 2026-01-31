@@ -369,6 +369,13 @@ def create_sale_api(sale_data: dict, session: Session = Depends(get_session), us
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/sales/{id}/remito", response_class=HTMLResponse)
+def get_sale_remito(id: int, request: Request, user: User = Depends(require_auth), settings: Settings = Depends(get_settings), session: Session = Depends(get_session)):
+    sale = session.get(Sale, id)
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+    return templates.TemplateResponse("remito.html", {"request": request, "sale": sale, "settings": settings})
+
 # --- Migration Endpoint (Temporary) ---
 @app.get("/migrate-legacy")
 def migrate_legacy_data(session: Session = Depends(get_session), user: User = Depends(require_auth)):

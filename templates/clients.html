@@ -6,7 +6,11 @@
 <div class="glass-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <h2>Gestión de Clientes</h2>
-        <button onclick="openModal()" class="btn">+ Nuevo Cliente</button>
+        <div>
+            <button onclick="window.print()" class="btn" style="background-color: #2c3e50; margin-right: 8px;">🖨️
+                Imprimir Listado</button>
+            <button onclick="openModal()" class="btn">+ Nuevo Cliente</button>
+        </div>
     </div>
 
     <div class="table-container">
@@ -139,4 +143,29 @@
         } catch (err) { alert("Error de conexión"); }
     }
 </script>
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        .table-container,
+        .table-container * {
+            visibility: visible;
+        }
+
+        .table-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+
+        /* Hide actions column */
+        th:nth-child(5),
+        td:nth-child(5) {
+            display: none;
+        }
+    }
+</style>
 {% endblock %}

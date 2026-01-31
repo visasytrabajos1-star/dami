@@ -45,6 +45,7 @@
                     <th>Fecha</th>
                     <th>Vendedor</th>
                     <th>Total</th>
+                    <th>Acciones</th>
                     <th>Items</th>
                 </tr>
             </thead>
@@ -56,7 +57,14 @@
                         <!-- User relationship might need to be eager loaded or handled -->
                         {% if sale.user_id %}Usuario #{{ sale.user_id }}{% else %}Sistema{% endif %}
                     </td>
-                    <td style="font-weight: bold; color: var(--primary-color);">${{ sale.total_amount }}</td>
+                    <td style="font-weight: bold; color: var(--primary-color);">${{ "%.2f"|format(sale.total_amount) }}
+                    </td>
+                    <td>
+                        <a href="/sales/{{ sale.id }}/remito" target="_blank" class="btn-small"
+                            style="text-decoration: none; display: inline-block; padding: 4px 8px; background: #e0e7ff; color: #4338ca; border-radius: 4px; font-size: 0.8em;">
+                            📄 Remito
+                        </a>
+                    </td>
                     <td>
                         <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem;">
                             {% for item in sale.items %}

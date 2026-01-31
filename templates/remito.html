@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Remito #{{ sale.id }}</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+
+        .company-info h1 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .company-info img {
+            max-height: 80px;
+            margin-bottom: 10px;
+        }
+
+        .document-info {
+            text-align: right;
+        }
+
+        .document-info h2 {
+            margin: 0;
+            color: #7f8c8d;
+            font-weight: 300;
+        }
+
+        .document-details {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .client-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        .client-section h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #7f8c8d;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #ddd;
+            color: #7f8c8d;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .total-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 60px;
+        }
+
+        .total-box {
+            text-align: right;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            min-width: 200px;
+        }
+
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 80px;
+            page-break-inside: avoid;
+        }
+
+        .signature-line {
+            width: 40%;
+            border-top: 1px solid #333;
+            text-align: center;
+            padding-top: 10px;
+            font-size: 0.9em;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+
+        .btn-print {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-print:hover {
+            background-color: #34495e;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="no-print" style="margin-bottom: 30px; text-align: right;">
+        <button onclick="window.print()" class="btn-print">
+            🖨️ Imprimir Remito
+        </button>
+    </div>
+
+    <div class="header">
+        <div class="company-info">
+            {% if settings.logo_url and settings.logo_url != '/static/images/logo.png' %}
+            <img src="{{ settings.logo_url }}" alt="Logo">
+            {% endif %}
+            <h1>{{ settings.company_name }}</h1>
+            <div>Remito de Entrega</div>
+        </div>
+        <div class="document-info">
+            <h2>REMITO #{{ "%06d" | format(sale.id) }}</h2>
+            <div class="document-details">
+                <div>Fecha: <strong>{{ sale.timestamp.strftime('%d/%m/%Y') }}</strong></div>
+                <div>Hora: {{ sale.timestamp.strftime('%H:%M') }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="client-section">
+        <h3>Destinatario</h3>
+        {% if sale.client %}
+        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">{{ sale.client.name }}</div>
+        {% if sale.client.address %}<div>{{ sale.client.address }}</div>{% endif %}
+        {% if sale.client.phone %}<div>Tel: {{ sale.client.phone }}</div>{% endif %}
+        {% else %}
+        <div>Cliente Final / Mostrador</div>
+        {% endif %}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 10%;">Cant.</th>
+                <th style="width: 50%;">Descripción</th>
+                <!-- Often Remitos do not show price, but user asked for functionality. 
+                     I will include it but user can easily hide it via CSS if they want 'Remito simple' -->
+                <th style="text-align: right;">Precio Unit.</th>
+                <th style="text-align: right;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sale.items %}
+            <tr>
+                <td>{{ item.quantity }}</td>
+                <td>
+                    <b>{{ item.product_name }}</b>
+                </td>
+                <td style="text-align: right;">${{ "%.2f"|format(item.unit_price) }}</td>
+                <td style="text-align: right;">${{ "%.2f"|format(item.total) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total-section">
+        <div class="total-box">
+            <div style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 5px;">Total General</div>
+            <div style="font-size: 1.5em; font-weight: bold;">${{ "%.2f"|format(sale.total_amount) }}</div>
+        </div>
+    </div>
+
+    <div class="signature-section">
+        <div class="signature-line">
+            Entregué Conforme
+        </div>
+        <div class="signature-line">
+            Recibí Conforme
+            <br>
+            <span style="font-size: 0.8em; color: #7f8c8d;">Firma y Aclaración</span>
+        </div>
+    </div>
+
+    <div style="margin-top: 50px; text-align: center; font-size: 0.8em; color: #ccc;">
+        Generado por {{ settings.company_name }} System
+    </div>
+</body>
+
+</html>
