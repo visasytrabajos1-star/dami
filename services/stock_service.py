@@ -1,9 +1,10 @@
 import barcode
 from barcode.writer import ImageWriter
 from sqlmodel import Session, select
-from database.models import Product, Sale, SaleItem, User
+from database.models import Product, Sale, SaleItem, User, Payment
 from typing import List, Optional
 import os
+from datetime import datetime
 
 class StockService:
     def __init__(self, static_dir: str = "static/barcodes"):
@@ -24,12 +25,13 @@ class StockService:
         code.save(full_path)
         return f"{filename}.png"
 
-    def process_sale(self, session: Session, user_id: int, items_data: List[dict], payment_method: str = "cash", client_id: Optional[int] = None) -> Sale:
+    def process_sale(self, session: Session, user_id: int, items_data: List[dict], payment_method: str = "cash", client_id: Optional[int] = None, amount_paid: Optional[float] = None) -> Sale:
         """
         Creates a Sale record and updates product stock.
+        If client_id is provided and amount_paid > 0, creates a Payment record.
         items_data expected format: [{"product_id": 1, "quantity": 2}, ...]
         """
-        sale = Sale(user_id=user_id, payment_method=payment_method, client_id=client_id)
+        sale = Sale(user_id=user_id, payment_method=payment_method, client_id=client_id, timestamp=datetime.now())
         total_sale = 0.0
         
         for item in items_data:
@@ -62,6 +64,19 @@ class StockService:
             
         sale.total_amount = total_sale
         session.add(sale)
+        
+        # Handle Payment if Client is selected
+        if client_id and amount_paid is not None and amount_paid > 0:
+            # Create a payment record linked to this sale (conceptually via time/client)
+            # The Payment model needs client_id, amount. Note is optional.
+            payment = Payment(
+                client_id=client_id,
+                amount=amount_paid,
+                date=datetime.now(),
+                note=f"Pago inmediato en Venta" 
+            )
+            session.add(payment)
+            
         session.commit()
         session.refresh(sale)
         return sale

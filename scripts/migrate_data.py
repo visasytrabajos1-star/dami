@@ -6,7 +6,7 @@ import re
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from sqlmodel import Session, select
-from database.session import engine
+from database.session import engine, create_db_and_tables
 from database.models import Product, Client
 
 SQL_FILE_PATH = r"C:\Users\Admin2\.gemini\antigravity\scratch\stock_system\SQL\BaseDeDatos v1.0.5.sql"
@@ -58,6 +58,7 @@ def parse_mysql_insert(line):
 
 def migrate():
     print("--- Starting Migration ---")
+    create_db_and_tables()
     
     with open(SQL_FILE_PATH, 'r', encoding='utf-8') as f:
         content = f.read()

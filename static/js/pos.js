@@ -109,16 +109,53 @@ function removeFromCart(id) {
     updateCart();
 }
 
-async function checkout() {
+function checkout() {
     if (cart.length === 0) return alert("El carrito está vacío");
 
     const clientSelect = document.getElementById('client-select');
+    const clientId = clientSelect ? clientSelect.value : "";
+    const clientName = clientSelect ? clientSelect.options[clientSelect.selectedIndex].text : "Casual";
+
+    // Calculate Total
+    let total = cart.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
+
+    // Update Modal UI
+    document.getElementById('modal-total-display').textContent = '$' + total.toFixed(2);
+    document.getElementById('modal-client-display').textContent = clientName;
+    document.getElementById('payment-amount').value = total.toFixed(2); // Default to full payment
+
+    // Show Modal
+    document.getElementById('payment-modal').style.display = 'flex';
+    document.getElementById('payment-amount').focus();
+    document.getElementById('payment-amount').select();
+}
+
+function closePaymentModal() {
+    document.getElementById('payment-modal').style.display = 'none';
+}
+
+async function confirmCheckout() {
+    const clientSelect = document.getElementById('client-select');
     const clientId = clientSelect ? clientSelect.value : null;
+
+    let amountPaidInput = document.getElementById('payment-amount').value;
+    let amountPaid = parseFloat(amountPaidInput);
+
+    if (isNaN(amountPaid) || amountPaid < 0) {
+        return alert("Por favor ingrese un monto válido");
+    }
 
     const salesData = {
         items: cart.map(i => ({ product_id: i.product_id, quantity: i.quantity })),
-        client_id: clientId ? parseInt(clientId) : null
+        client_id: clientId ? parseInt(clientId) : null,
+        amount_paid: amountPaid
     };
+
+    // Disable button to prevent double submit
+    const btn = document.querySelector('#payment-modal .btn');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Procesando...";
 
     try {
         const res = await fetch('/api/sales', {
@@ -130,16 +167,14 @@ async function checkout() {
         if (res.ok) {
             const sale = await res.json();
 
+            closePaymentModal();
+
             // Ask to print Remito
             if (confirm('Venta realizada con éxito. ¿Desea generar el Remito?')) {
                 window.open(`/sales/${sale.id}/remito`, '_blank');
             }
 
             cart = [];
-
-            // Clear UI needs to be robust if cart-body doesn't exist, but let's assume updateCart handles it or we fix it.
-            // Actually, updateCart uses cart-body. If pos.html doesn't have it, we should likely fix pos.html too.
-            // But for now let's stick to the request.
             updateCart();
 
             // Reload products to update stock
@@ -153,5 +188,8 @@ async function checkout() {
     } catch (e) {
         console.error(e);
         alert('Error de conexión o proceso: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
     }
 }

@@ -454,7 +454,13 @@ def delete_client_api(id: int, session: Session = Depends(get_session), user: Us
 @app.post("/api/sales")
 def create_sale_api(sale_data: dict, session: Session = Depends(get_session), user: User = Depends(require_auth)):
     try:
-        sale = stock_service.process_sale(session, user_id=user.id, items_data=sale_data["items"], client_id=sale_data.get("client_id"))
+        sale = stock_service.process_sale(
+            session, 
+            user_id=user.id, 
+            items_data=sale_data["items"], 
+            client_id=sale_data.get("client_id"),
+            amount_paid=sale_data.get("amount_paid")
+        )
         return sale
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
